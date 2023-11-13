@@ -2,7 +2,7 @@ const bodyParser = require('body-parser');
 const express = require('express');
 const Blockchain = require('./blockchain');
 const PubSub = require('./pubsub')
-const request = require('./request')
+const request = require('request')
 const app = express();
 const blockchain = new Blockchain();
 const pubsub = new PubSub({blockchain})
@@ -26,16 +26,16 @@ app.post('/api/mine', (req, res) => {
   res.redirect('/api/blocks');
 });
 
-const syncChains = ()=> {
-  request({
-    url: `${ROOT_NODE_ADDRESS}/api/blocks`}, (error, response, body)=>{
-      if(!error && response.statusCode === 200) {
-        const rootChain = JSON.parse(body)
-        console.log('Replace chain on a sync with', rootChain)
-        blockchain.replaceChain(rootChain)
-      }
-  })
-}
+const syncChains = () => {
+  request({ url: `${ROOT_NODE_ADDRESS}/api/blocks` }, (error, response, body) => {
+    if (!error && response.statusCode === 200) {
+      const rootChain = JSON.parse(body);
+
+      console.log('replace chain on a sync with', rootChain);
+      blockchain.replaceChain(rootChain);
+    }
+  });
+};
 
 let PEER_PORT
 
@@ -47,5 +47,7 @@ const PORT = PEER_PORT || DEFAULT_PORT
 
 app.listen(PORT, () => {
   console.log(`listening at localhost:${PORT}`);
-  syncChains()
+  if (PORT !== DEFAULT_PORT) {
+    syncChains();
+  }
 });
