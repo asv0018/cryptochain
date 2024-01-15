@@ -2,21 +2,23 @@ const redis = require('redis');
 
 const CHANNELS = {
   TEST: 'TEST',
-  BLOCKCHAIN: 'BLOCKCHAIN'
+  BLOCKCHAIN: 'BLOCKCHAIN',
+  TRANSACTION: 'TRANSACTION'
 };
 
 class PubSub {
-  constructor({blockchain}) {
+  constructor({blockchain, transactionPool}) {
     this.blockchain = blockchain
+    this.transactionPool = transactionPool
 
     // Specify the host and port for your Redis server
     this.publisher = redis.createClient({
-      host: 'www.projects.iotreeminds.com', // Replace with your actual host
+      host: 'redis.staging-projects.iotreeminds.com', // Replace with your actual host
       port: 6379, // Replace with your actual port
     });
 
     this.subscriber = redis.createClient({
-      host: 'www.projects.iotreeminds.com', // Replace with your actual host
+      host: 'redis.staging-projects.iotreeminds.com', // Replace with your actual host
       port: 6379, // Replace with your actual port
     });
 
@@ -49,12 +51,27 @@ class PubSub {
     })
   }
 
+  broadcastTransaction(transaction){
+    this.publish({
+      channel: CHANNELS.TRANSACTION,
+      message: JSON.stringify(transaction)
+    })
+  }
+
   handleMessage(channel, message) {
     console.log(`Message received. Channel: ${channel}. Message: ${message}`);
     
     const parsedMessage = JSON.parse(message)
-    if(channel===CHANNELS.BLOCKCHAIN) {
-      this.blockchain.replaceChain(parsedMessage)
+
+    switch(channel) {
+      case CHANNELS.BLOCKCHAIN:
+        this.blockchain.replaceChain(parsedMessage)
+        break
+      case CHANNELS.TRANSACTION:
+        this.transactionPool.setTransaction(parsedMessage)
+        break
+      default:
+        return
     }
   }
 }
